@@ -267,6 +267,40 @@ def create_app() -> Flask:
             warnings=STATE["reconciliation_warnings"],
         )
 
+    @app.route("/investors/update", methods=["POST"])
+    def update_investors():
+        updated = []
+        n = int(request.form.get("row_count", 0))
+        for i in range(n):
+            inv_id = request.form.get(f"investor_id_{i}", "").strip()
+            if not inv_id:
+                continue
+            # Find original investor to preserve email/mailing_address
+            orig = next((inv for inv in STATE["investors"] if inv.investor_id == inv_id), None)
+            try:
+                updated.append(Investor(
+                    investor_id=inv_id,
+                    investor_name=request.form.get(f"investor_name_{i}", "").strip(),
+                    fund_vehicle=request.form.get(f"fund_vehicle_{i}", "GP1"),
+                    investor_type=request.form.get(f"investor_type_{i}", "HNW"),
+                    country=request.form.get(f"country_{i}", "US"),
+                    commitment=float(request.form.get(f"commitment_{i}", 0) or 0),
+                    total_contributed=float(request.form.get(f"total_contributed_{i}", 0) or 0),
+                    total_distributed=float(request.form.get(f"total_distributed_{i}", 0) or 0),
+                    ownership_pct=float(request.form.get(f"ownership_pct_{i}", 0) or 0),
+                    email=orig.email if orig else "",
+                    mailing_address=orig.mailing_address if orig else "",
+                ))
+            except Exception as e:
+                flash(f"Error on row {i+1}: {e}", "error")
+                return redirect(url_for("investors"))
+        STATE["investors"] = updated
+        funds = _build_fund_performance()
+        STATE["reconciliation_warnings"] = validate_reconciliation(
+            STATE["investors"], funds
+        )
+        return redirect(url_for("investors"))
+
     @app.route("/investors/load-demo", methods=["POST"])
     def load_demo_investors():
         if not SAMPLE_INVESTOR_ROSTER.exists():
