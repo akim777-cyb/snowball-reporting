@@ -3,9 +3,9 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <div class="eyebrow">Step 2 of 7</div>
+        <div class="eyebrow">Step 2 of 8</div>
         <h1>Load Investor Roster</h1>
-        <p class="subtitle">Upload the investor roster or connect to Juniper Square.</p>
+        <p class="subtitle">Upload the investor roster or connect to Juniper Square. Reconciliation checks run automatically.</p>
     </div>
 </div>
 
@@ -20,6 +20,14 @@
             <button type="submit" class="btn btn-primary">Upload Roster</button>
         </form>
 
+        <div class="upload-divider"><span>OR</span></div>
+
+        <form method="post" action="{{ url_for('load_demo_investors') }}" class="upload-box upload-box-demo">
+            <div class="upload-icon">&#9733;</div>
+            <h3>Use Demo Roster</h3>
+            <p>20 mock investors across GP1, GP2, and the Canadian Feeder — structural proxy for the real 155-account dataset.</p>
+            <button type="submit" class="btn btn-secondary">Load Demo Roster</button>
+        </form>
     </div>
 </section>
 {% else %}
@@ -72,7 +80,6 @@
                     <th>Country</th>
                     <th class="num">Commitment</th>
                     <th class="num">Contributed</th>
-                    <th class="num">Distributed</th>
                     <th class="num">Own %</th>
                 </tr>
             </thead>
@@ -86,7 +93,6 @@
                     <td>{{ i.country }}</td>
                     <td class="num">${{ "{:,.0f}".format(i.commitment) }}</td>
                     <td class="num">${{ "{:,.0f}".format(i.total_contributed) }}</td>
-                    <td class="num">${{ "{:,.0f}".format(i.total_distributed) }}</td>
                     <td class="num">{{ "%.2f"|format(i.ownership_pct) }}%</td>
                 </tr>
                 {% endfor %}

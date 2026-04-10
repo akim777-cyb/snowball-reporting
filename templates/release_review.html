@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 7 of 8 &middot; Release Review</div>
+        <h1>Release to Juniper Square</h1>
+        <p class="subtitle">Final review before releasing {{ approved_count }} approved statement{{ 's' if approved_count != 1 else '' }} to the Juniper Square investor portal. Verify the notification email template and the email toggle below.</p>
+    </div>
+</div>
+
+<section class="release-summary-card">
+    <div class="release-summary-header">
+        <h3>Release Summary</h3>
+    </div>
+    <div class="release-summary-grid">
+        <div class="release-stat">
+            <div class="release-stat-label">Approved for Release</div>
+            <div class="release-stat-value release-stat-approved">{{ approved_count }}</div>
+        </div>
+        <div class="release-stat">
+            <div class="release-stat-label">Rejected &amp; Held Back</div>
+            <div class="release-stat-value release-stat-rejected">{{ rejected_count }}</div>
+        </div>
+        <div class="release-stat">
+            <div class="release-stat-label">Delivery Channel</div>
+            <div class="release-stat-value release-stat-channel">JSQ Portal</div>
+        </div>
+    </div>
+</section>
+
+<section class="email-preview-card">
+    <div class="email-preview-header">
+        <h3>Notification Email Preview</h3>
+        <span class="email-preview-note">This is the templated notification Juniper Square sends to each investor when their statement is posted. Merge fields are filled in with one sample investor's data.</span>
+    </div>
+    <div class="email-preview-box">
+        <div class="email-preview-field">
+            <span class="email-preview-label">To:</span>
+            <span class="email-preview-value">{{ email_preview.to }}</span>
+        </div>
+        <div class="email-preview-field">
+            <span class="email-preview-label">Subject:</span>
+            <span class="email-preview-value">{{ email_preview.subject }}</span>
+        </div>
+        <hr class="email-preview-divider">
+        <pre class="email-preview-body">{{ email_preview.body }}</pre>
+    </div>
+</section>
+
+<section class="email-toggle-card">
+    <form method="post" action="{{ url_for('set_email_toggle') }}" class="email-toggle-form">
+        <label class="email-toggle-label">
+            <input type="checkbox" name="send_email_notifications" {% if send_emails %}checked{% endif %} onchange="this.form.submit()">
+            <span class="email-toggle-text">
+                <strong>Send JSQ notification emails on release</strong>
+                <span class="email-toggle-hint">When checked, Juniper Square sends the templated email above to every investor when the statement is posted. Uncheck to release the statements silently — investors will see them in the portal but won't receive an email notification.</span>
+            </span>
+        </label>
+    </form>
+</section>
+
+<div class="nav-row">
+    <a href="{{ url_for('review_pdfs') }}" class="btn btn-ghost">&larr; Back to Review</a>
+    <form method="post" action="{{ url_for('release') }}" style="display:inline;">
+        <button type="submit" class="btn btn-primary btn-xl" {% if approved_count == 0 %}disabled{% endif %}>
+            Release to Juniper Square Portal &rarr;
+        </button>
+    </form>
+</div>
+{% endblock %}

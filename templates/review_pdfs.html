@@ -3,9 +3,8 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <div class="eyebrow">Step 6 of 7 &middot; Approval Gate 2</div>
+        <div class="eyebrow">Step 6 of 8</div>
         <h1>Review Draft PDFs</h1>
-        <p class="subtitle">Click any thumbnail to preview the full PDF. Approve or reject individually, or use the bulk actions. Only approved PDFs will be released.</p>
     </div>
     <div class="review-counts">
         <span class="count-chip count-approved"><span id="ct-approved">{{ approved_count }}</span> approved</span>
@@ -78,10 +77,8 @@
 
 <div class="nav-row">
     <a href="{{ url_for('generate') }}" class="btn btn-ghost">&larr; Back</a>
-    <form method="post" action="{{ url_for('release') }}" style="display:inline;">
-        <button type="submit" class="btn btn-primary btn-xl" {% if approved_count == 0 %}disabled{% endif %}>
-            Release Approved PDFs &rarr;
-        </button>
-    </form>
+    <a href="{{ url_for('release_review') }}" class="btn btn-primary btn-xl {% if approved_count == 0 %}disabled{% endif %}">
+        Proceed to Release Review &rarr;
+    </a>
 </div>
 {% endblock %}

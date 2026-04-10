@@ -62,6 +62,11 @@ STATE = {
     "draft_pdf_decisions": {},
     "output_format": "pdf",  # "pdf" | "xlsx" | "both"
     "active_excel_template": None,  # filename of uploaded template, or None for default
+    # Release state (Step 7-8)
+    "released_at": None,  # ISO timestamp when release happened
+    "send_email_notifications": True,  # toggle on the release review screen
+    "released_count": 0,
+    "rejected_count": 0,
 }
 
 
@@ -126,9 +131,7 @@ def _quarter_inputs() -> QuarterInputs:
         reporting_period=STATE["reporting_period"],
         fx_rate_usd_cad=STATE["fx_rate_usd_cad"],
         cad_withholding_rate=STATE["cad_withholding_rate"],
-        highlights_gp1=STATE["highlights"].get("GP1", []),
-        highlights_gp2=STATE["highlights"].get("GP2", []),
-        highlights_cad=STATE["highlights"].get("CAD_FEEDER", []),
+        highlights=dict(STATE["highlights"]),
     )
 
 
@@ -141,6 +144,7 @@ def _progress_pct() -> int:
         all(n["approved"] for n in STATE["narratives"].values()),
         STATE["pdf_gen_status"] == "done",
         any(d == "approved" for d in STATE["draft_pdf_decisions"].values()),
+        bool(STATE["released_at"]),
     ]
     return int(sum(steps) / len(steps) * 100)
 
@@ -181,6 +185,10 @@ def create_app() -> Flask:
         STATE["pdf_gen_progress"] = 0
         STATE["pdf_gen_total"] = 0
         STATE["draft_pdf_decisions"] = {}
+        STATE["released_at"] = None
+        STATE["released_count"] = 0
+        STATE["rejected_count"] = 0
+        STATE["send_email_notifications"] = True
         for d in [DRAFT_PDFS, APPROVED_PDFS, APPROVED_NARRATIVES]:
             if d.exists():
                 shutil.rmtree(d)
@@ -461,9 +469,63 @@ def create_app() -> Flask:
             STATE["draft_pdf_decisions"][pdf.name] = decision
         return redirect(url_for("review_pdfs"))
 
+    @app.route("/release/review")
+    def release_review():
+        """
+        Step 7 of 8 — Pre-release summary. Shows what's about to happen,
+        the notification email template preview, and the email toggle.
+        Operator clicks the final Release button here to actually
+        release to the simulated Juniper Square portal.
+        """
+        approved_pdfs = [
+            name for name, decision in STATE["draft_pdf_decisions"].items()
+            if decision == "approved"
+        ]
+        rejected_count = sum(
+            1 for d in STATE["draft_pdf_decisions"].values() if d == "rejected"
+        )
+
+        # Pick a sample investor for the email preview (prefer GP1 if available)
+        sample_investor = None
+        for inv in STATE["investors"]:
+            if inv.fund_vehicle == "GP1":
+                sample_investor = inv
+                break
+        if sample_investor is None and STATE["investors"]:
+            sample_investor = STATE["investors"][0]
+
+        email_preview = _render_notification_email(sample_investor)
+
+        return render_template(
+            "release_review.html",
+            approved_count=len(approved_pdfs),
+            rejected_count=rejected_count,
+            email_preview=email_preview,
+            send_emails=STATE["send_email_notifications"],
+        )
+
+    @app.route("/release/review/set-email-toggle", methods=["POST"])
+    def set_email_toggle():
+        STATE["send_email_notifications"] = (
+            request.form.get("send_email_notifications") == "on"
+        )
+        return redirect(url_for("release_review"))
+
     @app.route("/release", methods=["POST"])
     def release():
+        """
+        Step 8 of 8 — Commit the release. Moves approved PDFs to
+        /approved_pdfs, records the release timestamp, and captures
+        whether JSQ notification emails were sent. In production this
+        would post the PDFs to the Juniper Square portal API and
+        trigger the templated notification email to every investor.
+        """
+        from datetime import datetime
         APPROVED_PDFS.mkdir(exist_ok=True)
+        # Clean out any previously released files (fresh release)
+        for old in APPROVED_PDFS.glob("*.pdf"):
+            old.unlink()
+
         released = 0
         for pdf in DRAFT_PDFS.glob("*.pdf"):
             if STATE["draft_pdf_decisions"].get(pdf.name) == "approved":
@@ -472,8 +534,55 @@ def create_app() -> Flask:
         rejected = sum(
             1 for d in STATE["draft_pdf_decisions"].values() if d == "rejected"
         )
+
+        STATE["released_count"] = released
+        STATE["rejected_count"] = rejected
+        STATE["released_at"] = datetime.now().isoformat(timespec="seconds")
+
+        return redirect(url_for("released"))
+
+    @app.route("/released")
+    def released():
+        """
+        Post-release confirmation view with download links for
+        every released PDF, grouped by fund.
+        """
+        if not STATE["released_at"]:
+            # Nothing released yet — bounce back to review
+            return redirect(url_for("release_review"))
+
+        # Build per-fund file listings
+        released_files = sorted(APPROVED_PDFS.glob("*.pdf"))
+        files_by_fund = {}
+        for p in released_files:
+            # Filename format: FUND_INV-XXX_LastName_Q1_2026.pdf
+            fund_code = p.name.split("_")[0]
+            if fund_code == "CAD":  # Handle CAD_FEEDER which splits into two parts
+                fund_code = "CAD_FEEDER"
+            files_by_fund.setdefault(fund_code, []).append({
+                "filename": p.name,
+                "pretty_name": _pretty_name(p.name),
+                "fund_code": fund_code,
+            })
+
+        # Build notification email preview (same as what was shown on release review)
+        sample_investor = None
+        for inv in STATE["investors"]:
+            if inv.fund_vehicle == "GP1":
+                sample_investor = inv
+                break
+        if sample_investor is None and STATE["investors"]:
+            sample_investor = STATE["investors"][0]
+        email_preview = _render_notification_email(sample_investor) if sample_investor else ""
+
         return render_template(
-            "released.html", released=released, rejected=rejected,
+            "released.html",
+            released_count=STATE["released_count"],
+            rejected_count=STATE["rejected_count"],
+            released_at=STATE["released_at"],
+            send_emails=STATE["send_email_notifications"],
+            files_by_fund=files_by_fund,
+            email_preview=email_preview,
         )
 
     @app.route("/approved-pdf/<filename>")
@@ -498,7 +607,9 @@ def _current_step() -> int:
         return 5
     if not any(d == "approved" for d in STATE["draft_pdf_decisions"].values()):
         return 6
-    return 7
+    if not STATE["released_at"]:
+        return 7
+    return 8
 
 
 def _try_generate(fund, highlights) -> str:
@@ -553,6 +664,51 @@ def _pretty_name(filename: str) -> str:
     if len(parts) >= 3:
         return f"{parts[2]}"
     return filename
+
+
+def _render_notification_email(investor) -> dict:
+    """
+    Build the notification email that Juniper Square would send when a
+    statement is posted to the portal. Returns a dict with subject and
+    body, with merge fields filled in for the sample investor.
+
+    In production, this template lives in the JSQ platform — the tool
+    just triggers the send by posting the statement. The preview here
+    is what Brian/Andres would see when reviewing the outbound comms
+    before releasing.
+    """
+    if investor is None:
+        return {
+            "subject": "Your [Quarter] Capital Account Statement is Now Available",
+            "body": "",
+            "to": "",
+        }
+
+    from .funds_config import display_name
+    fund_name = display_name(investor.fund_vehicle)
+    # Use the actively-set reporting period
+    period = STATE.get("reporting_period", "Q1 2026")
+
+    subject = f"Your {period} Capital Account Statement is Now Available"
+    body = f"""Dear {investor.investor_name},
+
+Your {period} capital account statement for {fund_name} has been posted to the Snowball Developments investor portal.
+
+To view your statement, please log in at:
+https://snowball.junipersquare.com/investor/{investor.investor_id}
+
+If you have any questions about your statement, please contact Andres Aldrete, Head of Portfolio Management, at andres@snowballdevelopments.com.
+
+Thank you for your continued partnership.
+
+Snowball Developments
+Value-Add Industrial Real Estate
+Brooklyn, NY"""
+    return {
+        "subject": subject,
+        "body": body,
+        "to": investor.email,
+    }
 
 
 def _demo_highlights():

@@ -1,25 +1,95 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="release-card">
-    <div class="check-big">&#10003;</div>
-    <h1>{{ released }} PDFs Released</h1>
-    <p class="subtitle">{{ released }} approved statements have been released. {% if rejected %}{{ rejected }} were rejected and held back.{% endif %}</p>
-
-    <div class="prod-callout">
-        <div class="prod-callout-label">In Production</div>
-        <p>
-            At this point in the real pipeline, the approved PDFs would post automatically to the Juniper Square
-            investor portal and trigger notification emails to each investor. Andres would never open the
-            individual files manually — the entire distribution happens as a single atomic release event,
-            with full audit logging.
-        </p>
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 8 of 8 &middot; Released</div>
+        <h1>Released to Juniper Square</h1>
+        <p class="subtitle">{{ released_count }} statement{{ 's' if released_count != 1 else '' }} released to the investor portal on {{ released_at }}. {% if rejected_count %}{{ rejected_count }} were rejected and held back.{% endif %}</p>
     </div>
+</div>
 
-    <div class="nav-row center">
-        <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
-            <button type="submit" class="btn btn-primary">Start a New Quarter</button>
-        </form>
+<section class="release-confirm-card">
+    <div class="release-confirm-header">
+        <div class="check-inline">&#10003;</div>
+        <div>
+            <h3>Release Complete</h3>
+            <p class="release-confirm-sub">All approved statements have been posted to the Juniper Square investor portal.</p>
+        </div>
+    </div>
+    <div class="release-confirm-grid">
+        <div class="release-stat">
+            <div class="release-stat-label">Released</div>
+            <div class="release-stat-value release-stat-approved">{{ released_count }}</div>
+        </div>
+        <div class="release-stat">
+            <div class="release-stat-label">Held Back</div>
+            <div class="release-stat-value release-stat-rejected">{{ rejected_count }}</div>
+        </div>
+        <div class="release-stat">
+            <div class="release-stat-label">Notifications</div>
+            <div class="release-stat-value release-stat-channel">{{ 'Sent' if send_emails else 'Skipped' }}</div>
+        </div>
+        <div class="release-stat">
+            <div class="release-stat-label">Timestamp</div>
+            <div class="release-stat-value release-stat-timestamp">{{ released_at }}</div>
+        </div>
     </div>
 </section>
+
+{% if send_emails and email_preview %}
+<section class="email-preview-card email-sent">
+    <div class="email-preview-header">
+        <h3>Notification Email Sent</h3>
+        <span class="email-preview-note">This templated notification was sent to each investor by Juniper Square. One sample shown below with merge fields filled in.</span>
+    </div>
+    <div class="email-preview-box">
+        <div class="email-preview-field">
+            <span class="email-preview-label">Subject:</span>
+            <span class="email-preview-value">{{ email_preview.subject }}</span>
+        </div>
+        <hr class="email-preview-divider">
+        <pre class="email-preview-body">{{ email_preview.body }}</pre>
+    </div>
+</section>
+{% endif %}
+
+<section class="downloads-card">
+    <div class="downloads-header">
+        <h3>Released Statements</h3>
+        <span class="downloads-note">Click any investor to download their PDF. In production, investors access these through the Juniper Square portal — this local download list is for operator reference only.</span>
+    </div>
+    {% for fund_code, files in files_by_fund.items() %}
+    <div class="downloads-fund-group">
+        <div class="downloads-fund-header">
+            <span class="fund-chip fund-chip-{{ fund_code }}">{{ fund_code }}</span>
+            <span class="downloads-fund-count">{{ files|length }} investor{{ 's' if files|length != 1 else '' }}</span>
+        </div>
+        <div class="downloads-list">
+            {% for f in files %}
+            <a href="{{ url_for('serve_approved_pdf', filename=f.filename) }}" class="download-link" target="_blank">
+                <span class="download-icon">&#128196;</span>
+                <span class="download-name">{{ f.pretty_name }}</span>
+                <span class="download-arrow">&darr;</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+
+<div class="prod-callout">
+    <div class="prod-callout-label">In Production</div>
+    <p>
+        This release step posts the approved PDFs to the Juniper Square portal API
+        {% if send_emails %}and triggers the templated notification email to every investor on record{% else %}silently, without sending notification emails{% endif %}.
+        Andres never opens individual files manually — the entire distribution happens as a single atomic release event, with full audit logging and no possibility of a statement being sent to the wrong investor.
+    </p>
+</div>
+
+<div class="nav-row center">
+    <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
+        <button type="submit" class="btn btn-primary">Start a New Quarter</button>
+    </form>
+</div>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <div class="eyebrow">Step 1 of 7</div>
+        <div class="eyebrow">Step 1 of 8</div>
         <h1>Extract Asset-Level Performance</h1>
         <p class="subtitle">Upload operating statements, rent rolls, or ARGUS exports. The system reads them and extracts structured asset data automatically.</p>
     </div>
@@ -20,6 +20,14 @@
             <button type="submit" class="btn btn-primary">Extract Asset Data</button>
         </form>
 
+        <div class="upload-divider"><span>OR</span></div>
+
+        <form method="post" action="{{ url_for('load_demo_assets') }}" class="upload-box upload-box-demo">
+            <div class="upload-icon">&#9733;</div>
+            <h3>Use Demo Source Documents</h3>
+            <p>Three bundled sample files — an operating statement PDF, a rent roll Excel, and an ARGUS CSV export.</p>
+            <button type="submit" class="btn btn-secondary">Load Demo &amp; Extract</button>
+        </form>
     </div>
 </section>
 {% else %}
