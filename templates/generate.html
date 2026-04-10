@@ -48,7 +48,7 @@
                         if (data.status === "done") {
                             window.location.href = "{{ url_for('review_pdfs') }}";
                         } else if (data.status === "error") {
-                            document.getElementById("gen-status").textContent = "Error — check the console.";
+                            document.getElementById("gen-status").textContent = "Error: " + (data.error || "unknown");
                         } else {
                             setTimeout(poll, 500);
                         }
@@ -64,7 +64,7 @@
         <a href="{{ url_for('review_pdfs') }}" class="btn btn-primary btn-xl">Review Drafts &rarr;</a>
 
     {% elif state.pdf_gen_status == "error" %}
-        <div class="alert alert-error">PDF generation failed. Check the terminal for details.</div>
+        <div class="alert alert-error">PDF generation failed: {{ state.get('pdf_gen_error', 'unknown error') }}</div>
         <form method="post" action="{{ url_for('generate') }}">
             <button type="submit" class="btn btn-secondary">Retry</button>
         </form>

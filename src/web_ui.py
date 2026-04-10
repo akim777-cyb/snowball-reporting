@@ -413,6 +413,7 @@ def create_app() -> Flask:
             "status": STATE["pdf_gen_status"],
             "progress": STATE["pdf_gen_progress"],
             "total": STATE["pdf_gen_total"],
+            "error": STATE.get("pdf_gen_error", ""),
         })
 
     # ---------- Step 6: Review PDFs (Gate 2) ----------
@@ -653,8 +654,10 @@ def _start_pdf_generation():
             }
             STATE["pdf_gen_status"] = "done"
         except Exception as e:
-            print(f"[pdf generation] error: {e}")
+            import traceback
+            traceback.print_exc()
             STATE["pdf_gen_status"] = "error"
+            STATE["pdf_gen_error"] = str(e)
 
     threading.Thread(target=_run, daemon=True).start()
 
