@@ -20,14 +20,6 @@
             <button type="submit" class="btn btn-primary">Upload Roster</button>
         </form>
 
-        <div class="upload-divider"><span>OR</span></div>
-
-        <form method="post" action="{{ url_for('load_demo_investors') }}" class="upload-box upload-box-demo">
-            <div class="upload-icon">&#9733;</div>
-            <h3>Use Demo Roster</h3>
-            <p>20 mock investors across GP1, GP2, and the Canadian Feeder — structural proxy for the real 155-account dataset.</p>
-            <button type="submit" class="btn btn-secondary">Load Demo Roster</button>
-        </form>
     </div>
 </section>
 {% else %}
