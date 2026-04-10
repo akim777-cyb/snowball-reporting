@@ -78,14 +78,6 @@
     {% endfor %}
 </section>
 
-<div class="prod-callout">
-    <div class="prod-callout-label">In Production</div>
-    <p>
-        This release step posts the approved PDFs to the Juniper Square portal API
-        {% if send_emails %}and triggers the templated notification email to every investor on record{% else %}silently, without sending notification emails{% endif %}.
-        Andres never opens individual files manually — the entire distribution happens as a single atomic release event, with full audit logging and no possibility of a statement being sent to the wrong investor.
-    </p>
-</div>
 
 <div class="nav-row center">
     <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
