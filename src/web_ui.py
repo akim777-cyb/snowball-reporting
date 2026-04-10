@@ -180,7 +180,7 @@ def create_app() -> Flask:
             return redirect(url_for("assets"))
         return render_template("assets.html", assets=STATE["extracted_assets"])
 
-@app.route("/assets/update", methods=["POST"])
+    @app.route("/assets/update", methods=["POST"])
     def update_assets():
         updated = []
         n = int(request.form.get("row_count", 0))
