@@ -5,9 +5,38 @@
     <div>
         <div class="eyebrow">Step 3 of 7</div>
         <h1>Quarter Highlights</h1>
-        <p class="subtitle">These become the raw material the AI uses to draft the narratives in the next step. One bullet per line.</p>
+        <p class="subtitle">Three to five bullet points per fund. These become the raw material the AI uses to draft the narratives in the next step. One bullet per line.</p>
     </div>
 </div>
+
+<section class="quarter-params-card">
+    <div class="quarter-params-header">
+        <h3>Quarter Parameters</h3>
+        <span class="quarter-params-note">Variable inputs that flow through the whole pipeline — capital calculations, PDF disclosures, narrative context. Verify before proceeding.</span>
+    </div>
+    <form method="post" action="{{ url_for('save_quarter_parameters') }}" class="quarter-params-form">
+        <div class="quarter-params-row">
+            <label class="quarter-param">
+                <span class="param-label">Reporting Period</span>
+                <input type="text" name="reporting_period" value="{{ state.reporting_period }}" placeholder="Q1 2026" required>
+                <span class="param-hint">e.g. "Q1 2026" — appears on every PDF and in narratives.</span>
+            </label>
+            <label class="quarter-param">
+                <span class="param-label">USD/CAD FX Rate</span>
+                <input type="number" name="fx_rate_usd_cad" value="{{ '%.4f'|format(state.fx_rate_usd_cad) }}" step="0.0001" min="0" required>
+                <span class="param-hint">Period-end rate. Production: pulled from an FX API.</span>
+            </label>
+            <label class="quarter-param">
+                <span class="param-label">Canadian Withholding Rate (%)</span>
+                <input type="number" name="cad_withholding_rate" value="{{ '%.2f'|format(state.cad_withholding_rate * 100) }}" step="0.01" min="0" max="50" required>
+                <span class="param-hint">15% under the US-Canada tax treaty. Rarely changes.</span>
+            </label>
+        </div>
+        <div class="quarter-params-actions">
+            <button type="submit" class="btn btn-secondary btn-sm">Save Parameters</button>
+        </div>
+    </form>
+</section>
 
 <form method="post" action="{{ url_for('highlights') }}">
     {% for code, label in [('GP1', 'GP Fund #1'), ('GP2', 'GP Fund #2'), ('CAD_FEEDER', 'Canadian Feeder Fund')] %}

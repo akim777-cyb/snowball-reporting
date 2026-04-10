@@ -30,6 +30,19 @@ UPLOAD_DIR = PROJECT_ROOT / "uploads"
 APPROVED_NARRATIVES = PROJECT_ROOT / "approved_narratives"
 DRAFT_PDFS = PROJECT_ROOT / "draft_pdfs"
 APPROVED_PDFS = PROJECT_ROOT / "approved_pdfs"
+SAMPLE_SOURCES = PROJECT_ROOT / "data" / "sample_sources"
+SAMPLE_INVESTOR_ROSTER = PROJECT_ROOT / "data" / "investor_roster.xlsx"
+
+
+from .funds_config import fund_codes, FUNDS, display_name, default_highlights
+
+
+def _empty_narratives() -> dict:
+    return {code: {"text": "", "approved": False} for code in fund_codes()}
+
+
+def _empty_highlights() -> dict:
+    return {code: [] for code in fund_codes()}
 
 
 # Single-session in-memory state (single-operator desktop tool).
@@ -41,22 +54,34 @@ STATE = {
     "source_doc_names": [],
     "investors": [],
     "reconciliation_warnings": [],
-    "highlights": {"GP1": [], "GP2": [], "CAD_FEEDER": []},
-    "narratives": {
-        "GP1": {"text": "", "approved": False},
-        "GP2": {"text": "", "approved": False},
-        "CAD_FEEDER": {"text": "", "approved": False},
-    },
+    "highlights": _empty_highlights(),
+    "narratives": _empty_narratives(),
     "pdf_gen_status": "idle",
     "pdf_gen_progress": 0,
     "pdf_gen_total": 0,
     "draft_pdf_decisions": {},
+    "output_format": "pdf",  # "pdf" | "xlsx" | "both"
+    "active_excel_template": None,  # filename of uploaded template, or None for default
 }
 
 
 def _build_fund_performance() -> dict:
-    gp1_assets = STATE["extracted_assets"]
-    gp2_assets = [
+    """
+    Build FundPerformance objects for all configured funds using
+    default_performance data from funds_config.
+
+    Asset allocation:
+      - Extracted assets (from the Assets step) are assigned to the primary
+        GP fund. For a feeder fund, assets pass through from the underlying GP.
+      - GP2 uses a hardcoded pipeline list because it's mid-raise and its
+        assets aren't covered by the user's uploaded source documents.
+    """
+    from .funds_config import FUNDS, default_performance, is_feeder
+
+    extracted = STATE["extracted_assets"]
+
+    # Hardcoded pipeline assets for GP2 (mid-raise, not in uploaded docs)
+    gp2_pipeline_assets = [
         AssetPerformance(
             asset_name="Norwalk Industrial", state="CT", sf=120_000,
             occupancy_pct=100.0, in_place_noi=870_000,
@@ -73,29 +98,27 @@ def _build_fund_performance() -> dict:
             yoy_noi_change_pct=0.0, valuation_mark=9_700_000,
         ),
     ]
-    return {
-        "GP1": FundPerformance(
-            fund_vehicle="GP1", quarter_end_nav=168_500_000,
-            quarterly_distribution_per_unit=0.45, ytd_net_irr=14.2,
-            itd_net_irr=17.8, ytd_equity_multiple=1.08,
-            itd_equity_multiple=1.42, fund_unfunded_commitment=0,
-            assets=gp1_assets,
-        ),
-        "GP2": FundPerformance(
-            fund_vehicle="GP2", quarter_end_nav=10_250_000,
-            quarterly_distribution_per_unit=0.0, ytd_net_irr=0.0,
-            itd_net_irr=0.0, ytd_equity_multiple=1.0,
-            itd_equity_multiple=1.0, fund_unfunded_commitment=15_000_000,
-            assets=gp2_assets,
-        ),
-        "CAD_FEEDER": FundPerformance(
-            fund_vehicle="CAD_FEEDER", quarter_end_nav=5_200_000,
-            quarterly_distribution_per_unit=0.42, ytd_net_irr=13.5,
-            itd_net_irr=16.9, ytd_equity_multiple=1.07,
-            itd_equity_multiple=1.38, fund_unfunded_commitment=0,
-            assets=gp1_assets,
-        ),
-    }
+
+    result = {}
+    for code in FUNDS.keys():
+        perf = default_performance(code)
+
+        # Determine asset allocation per fund
+        if code == "GP2":
+            assets = gp2_pipeline_assets
+        elif is_feeder(code):
+            # Feeders see through to the underlying GP portfolio
+            assets = extracted
+        else:
+            assets = extracted
+
+        result[code] = FundPerformance(
+            fund_vehicle=code,
+            assets=assets,
+            **perf,
+        )
+
+    return result
 
 
 def _quarter_inputs() -> QuarterInputs:
@@ -103,9 +126,7 @@ def _quarter_inputs() -> QuarterInputs:
         reporting_period=STATE["reporting_period"],
         fx_rate_usd_cad=STATE["fx_rate_usd_cad"],
         cad_withholding_rate=STATE["cad_withholding_rate"],
-        highlights_gp1=STATE["highlights"]["GP1"],
-        highlights_gp2=STATE["highlights"]["GP2"],
-        highlights_cad=STATE["highlights"]["CAD_FEEDER"],
+        highlights=dict(STATE["highlights"]),
     )
 
 
@@ -128,7 +149,7 @@ def create_app() -> Flask:
         template_folder=str(PROJECT_ROOT / "templates"),
         static_folder=str(PROJECT_ROOT / "static"),
     )
-    app.secret_key = "snowball-app-key"
+    app.secret_key = "snowball-demo-key"
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -152,9 +173,8 @@ def create_app() -> Flask:
         STATE["source_doc_names"] = []
         STATE["investors"] = []
         STATE["reconciliation_warnings"] = []
-        STATE["highlights"] = {"GP1": [], "GP2": [], "CAD_FEEDER": []}
-        for k in STATE["narratives"]:
-            STATE["narratives"][k] = {"text": "", "approved": False}
+        STATE["highlights"] = _empty_highlights()
+        STATE["narratives"] = _empty_narratives()
         STATE["pdf_gen_status"] = "idle"
         STATE["pdf_gen_progress"] = 0
         STATE["pdf_gen_total"] = 0
@@ -179,6 +199,16 @@ def create_app() -> Flask:
                 STATE["source_doc_names"] = [p.name for p in uploaded]
             return redirect(url_for("assets"))
         return render_template("assets.html", assets=STATE["extracted_assets"])
+
+    @app.route("/assets/load-demo", methods=["POST"])
+    def load_demo_assets():
+        if not SAMPLE_SOURCES.exists() or not any(SAMPLE_SOURCES.iterdir()):
+            flash("Sample sources not found. Run: python build_sample_sources.py", "error")
+            return redirect(url_for("assets"))
+        paths = sorted(SAMPLE_SOURCES.glob("*"))
+        STATE["extracted_assets"] = extract_from_multiple(paths)
+        STATE["source_doc_names"] = [p.name for p in paths]
+        return redirect(url_for("assets"))
 
     @app.route("/assets/update", methods=["POST"])
     def update_assets():
@@ -224,11 +254,73 @@ def create_app() -> Flask:
             warnings=STATE["reconciliation_warnings"],
         )
 
-# ---------- Step 3: Highlights ----------
+    @app.route("/investors/load-demo", methods=["POST"])
+    def load_demo_investors():
+        if not SAMPLE_INVESTOR_ROSTER.exists():
+            flash("Sample roster not found.", "error")
+            return redirect(url_for("investors"))
+        STATE["investors"] = load_investors(SAMPLE_INVESTOR_ROSTER)
+        funds = _build_fund_performance()
+        STATE["reconciliation_warnings"] = validate_reconciliation(
+            STATE["investors"], funds
+        )
+        return redirect(url_for("investors"))
+
+    # ---------- Quarter Parameters (writes back to STATE, then returns) ----------
+    @app.route("/quarter-parameters/save", methods=["POST"])
+    def save_quarter_parameters():
+        """
+        Save the period-end parameters that flow through the whole pipeline.
+        These values feed into calculations (FX conversion, withholding),
+        PDF generation (Canadian disclosures), and narrative context
+        (reporting period references). Nothing is calculated here — we
+        just update STATE and redirect back. Downstream code already reads
+        from STATE dynamically.
+        """
+        errors = []
+
+        period = request.form.get("reporting_period", "").strip()
+        if period:
+            STATE["reporting_period"] = period
+
+        fx_raw = request.form.get("fx_rate_usd_cad", "").strip()
+        if fx_raw:
+            try:
+                fx = float(fx_raw)
+                if fx <= 0 or fx > 10:
+                    errors.append(f"FX rate {fx} is outside the plausible range (0-10)")
+                else:
+                    STATE["fx_rate_usd_cad"] = fx
+            except ValueError:
+                errors.append(f"FX rate must be a number, got: {fx_raw!r}")
+
+        wh_raw = request.form.get("cad_withholding_rate", "").strip()
+        if wh_raw:
+            try:
+                wh = float(wh_raw)
+                # Accept either 15 (percent) or 0.15 (decimal)
+                wh_decimal = wh / 100 if wh > 1 else wh
+                if wh_decimal < 0 or wh_decimal > 0.5:
+                    errors.append(f"Withholding rate {wh}% is outside the plausible range (0-50%)")
+                else:
+                    STATE["cad_withholding_rate"] = wh_decimal
+            except ValueError:
+                errors.append(f"Withholding rate must be a number, got: {wh_raw!r}")
+
+        # Clear any cached narratives since reporting_period may have changed
+        STATE["narratives"] = _empty_narratives()
+
+        if errors:
+            for e in errors:
+                print(f"[quarter parameters] {e}")
+
+        return redirect(url_for("highlights"))
+
+    # ---------- Step 3: Highlights ----------
     @app.route("/highlights", methods=["GET", "POST"])
     def highlights():
         if request.method == "POST":
-            for code in ["GP1", "GP2", "CAD_FEEDER"]:
+            for code in fund_codes():
                 raw = request.form.get(f"highlights_{code}", "")
                 bullets = [
                     line.strip("- •\t").strip()
@@ -236,17 +328,18 @@ def create_app() -> Flask:
                 ]
                 STATE["highlights"][code] = bullets
             # Clear narratives so they regenerate with new highlights
-            for k in STATE["narratives"]:
-                STATE["narratives"][k] = {"text": "", "approved": False}
+            STATE["narratives"] = _empty_narratives()
             return redirect(url_for("narratives"))
 
+        if not any(STATE["highlights"].values()):
+            STATE["highlights"] = _demo_highlights()
         return render_template("highlights.html")
 
     # ---------- Step 4: Narratives (Gate 1) ----------
     @app.route("/narratives")
     def narratives():
         funds = _build_fund_performance()
-        for code in ["GP1", "GP2", "CAD_FEEDER"]:
+        for code in fund_codes():
             if not STATE["narratives"][code]["text"]:
                 STATE["narratives"][code]["text"] = _try_generate(
                     funds[code], STATE["highlights"][code]
@@ -255,12 +348,12 @@ def create_app() -> Flask:
         all_approved = all(n["approved"] for n in STATE["narratives"].values())
         fund_cards = [{
             "code": code,
-            "name": FUND_DISPLAY_NAMES[code],
+            "name": display_name(code),
             "performance": funds[code],
             "narrative": STATE["narratives"][code]["text"],
             "approved": STATE["narratives"][code]["approved"],
             "highlights": STATE["highlights"][code],
-        } for code in ["GP1", "GP2", "CAD_FEEDER"]]
+        } for code in fund_codes()]
 
         return render_template(
             "narratives.html",
@@ -459,6 +552,29 @@ def _pretty_name(filename: str) -> str:
         return f"{parts[2]}"
     return filename
 
+
+def _demo_highlights():
+    return {
+        "GP1": [
+            "Portfolio occupancy reached 94% on a trailing basis, with ~350K SF of leases pending execution that will push occupancy toward 98% by Q2.",
+            "Signed a new 10-year lease at South Windsor at $8.75 PSF NNN, a 42% mark-to-market premium over the prior in-place rent.",
+            "Solar program expanded to 9 assets totaling 500K+ SF, now generating $245K in annual income at ~$0.50 PSF.",
+            "Completed the South Windsor refinancing at $9.5M against a $9.0M total cost basis, returning equity to the partnership.",
+            "Waterbury and Meriden executed 4 acres of outdoor storage leases, adding incremental cash flow with minimal capex.",
+        ],
+        "GP2": [
+            "Three initial assets acquired in Q1: Norwalk Industrial, Paterson Logistics, and North Haven, totaling 320K SF for approximately $30.4M.",
+            "Pipeline includes 6 assets under contract representing 600K SF, with closings anticipated between February and April.",
+            "Fund is on track to be fully deployed by the end of 2026.",
+            "Value-add thesis unchanged: acquire land-heavy assets at below-replacement-cost basis in the Tri-State industrial market.",
+        ],
+        "CAD_FEEDER": [
+            "The Canadian Feeder participated pro rata in GP Fund #1's Q1 activity, including the South Windsor refinancing and solar program expansion.",
+            "FX conditions remained stable through the quarter at approximately 1.365 USD/CAD.",
+            "No changes to the Canadian non-resident withholding rate of 15% on distributions.",
+            "Eastern Canada expansion under evaluation for potential future feeder vehicles.",
+        ],
+    }
 
 
 _FALLBACK_NARRATIVES = {
