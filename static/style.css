@@ -308,11 +308,6 @@ a:hover { color: var(--snowball-blue-dark); }
     transition: border-color 0.2s;
 }
 .upload-box:hover { border-color: var(--snowball-blue); }
-.upload-box-demo {
-    border-style: solid;
-    border-color: var(--snowball-blue-light);
-    background: var(--snowball-blue-pale);
-}
 .upload-icon {
     font-size: 36px;
     color: var(--snowball-blue);

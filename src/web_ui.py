@@ -30,8 +30,6 @@ UPLOAD_DIR = PROJECT_ROOT / "uploads"
 APPROVED_NARRATIVES = PROJECT_ROOT / "approved_narratives"
 DRAFT_PDFS = PROJECT_ROOT / "draft_pdfs"
 APPROVED_PDFS = PROJECT_ROOT / "approved_pdfs"
-SAMPLE_SOURCES = PROJECT_ROOT / "data" / "sample_sources"
-SAMPLE_INVESTOR_ROSTER = PROJECT_ROOT / "data" / "investor_roster.xlsx"
 
 
 # Single-session in-memory state (single-operator desktop tool).
@@ -130,7 +128,7 @@ def create_app() -> Flask:
         template_folder=str(PROJECT_ROOT / "templates"),
         static_folder=str(PROJECT_ROOT / "static"),
     )
-    app.secret_key = "snowball-demo-key"
+    app.secret_key = "snowball-app-key"
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -182,17 +180,7 @@ def create_app() -> Flask:
             return redirect(url_for("assets"))
         return render_template("assets.html", assets=STATE["extracted_assets"])
 
-    @app.route("/assets/load-demo", methods=["POST"])
-    def load_demo_assets():
-        if not SAMPLE_SOURCES.exists() or not any(SAMPLE_SOURCES.iterdir()):
-            flash("Sample sources not found. Run: python build_sample_sources.py", "error")
-            return redirect(url_for("assets"))
-        paths = sorted(SAMPLE_SOURCES.glob("*"))
-        STATE["extracted_assets"] = extract_from_multiple(paths)
-        STATE["source_doc_names"] = [p.name for p in paths]
-        return redirect(url_for("assets"))
-
-    @app.route("/assets/update", methods=["POST"])
+@app.route("/assets/update", methods=["POST"])
     def update_assets():
         updated = []
         n = int(request.form.get("row_count", 0))
@@ -236,19 +224,7 @@ def create_app() -> Flask:
             warnings=STATE["reconciliation_warnings"],
         )
 
-    @app.route("/investors/load-demo", methods=["POST"])
-    def load_demo_investors():
-        if not SAMPLE_INVESTOR_ROSTER.exists():
-            flash("Sample roster not found.", "error")
-            return redirect(url_for("investors"))
-        STATE["investors"] = load_investors(SAMPLE_INVESTOR_ROSTER)
-        funds = _build_fund_performance()
-        STATE["reconciliation_warnings"] = validate_reconciliation(
-            STATE["investors"], funds
-        )
-        return redirect(url_for("investors"))
-
-    # ---------- Step 3: Highlights ----------
+# ---------- Step 3: Highlights ----------
     @app.route("/highlights", methods=["GET", "POST"])
     def highlights():
         if request.method == "POST":
@@ -264,8 +240,6 @@ def create_app() -> Flask:
                 STATE["narratives"][k] = {"text": "", "approved": False}
             return redirect(url_for("narratives"))
 
-        if not any(STATE["highlights"].values()):
-            STATE["highlights"] = _demo_highlights()
         return render_template("highlights.html")
 
     # ---------- Step 4: Narratives (Gate 1) ----------
@@ -485,29 +459,6 @@ def _pretty_name(filename: str) -> str:
         return f"{parts[2]}"
     return filename
 
-
-def _demo_highlights():
-    return {
-        "GP1": [
-            "Portfolio occupancy reached 94% on a trailing basis, with ~350K SF of leases pending execution that will push occupancy toward 98% by Q2.",
-            "Signed a new 10-year lease at South Windsor at $8.75 PSF NNN, a 42% mark-to-market premium over the prior in-place rent.",
-            "Solar program expanded to 9 assets totaling 500K+ SF, now generating $245K in annual income at ~$0.50 PSF.",
-            "Completed the South Windsor refinancing at $9.5M against a $9.0M total cost basis, returning equity to the partnership.",
-            "Waterbury and Meriden executed 4 acres of outdoor storage leases, adding incremental cash flow with minimal capex.",
-        ],
-        "GP2": [
-            "Three initial assets acquired in Q1: Norwalk Industrial, Paterson Logistics, and North Haven, totaling 320K SF for approximately $30.4M.",
-            "Pipeline includes 6 assets under contract representing 600K SF, with closings anticipated between February and April.",
-            "Fund is on track to be fully deployed by the end of 2026.",
-            "Value-add thesis unchanged: acquire land-heavy assets at below-replacement-cost basis in the Tri-State industrial market.",
-        ],
-        "CAD_FEEDER": [
-            "The Canadian Feeder participated pro rata in GP Fund #1's Q1 activity, including the South Windsor refinancing and solar program expansion.",
-            "FX conditions remained stable through the quarter at approximately 1.365 USD/CAD.",
-            "No changes to the Canadian non-resident withholding rate of 15% on distributions.",
-            "Eastern Canada expansion under evaluation for potential future feeder vehicles.",
-        ],
-    }
 
 
 _FALLBACK_NARRATIVES = {

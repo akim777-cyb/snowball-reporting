@@ -14,26 +14,6 @@ from pathlib import Path
 from src.web_ui import create_app
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-DATA_DIR = PROJECT_ROOT / "data"
-
-
-def _ensure_demo_data():
-    """Make sure the demo data files exist so the 'Use Demo' buttons work."""
-    sources_dir = DATA_DIR / "sample_sources"
-    roster_file = DATA_DIR / "investor_roster.xlsx"
-
-    if not sources_dir.exists() or not any(sources_dir.glob("*")):
-        print("[setup] Building sample source documents...")
-        from build_sample_sources import build_all as build_sources
-        build_sources(sources_dir)
-
-    if not roster_file.exists():
-        print("[setup] Building sample investor roster...")
-        from seed_data import build_all as build_roster
-        build_roster(DATA_DIR)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Snowball Developments — Investor Reporting Automation"
@@ -47,8 +27,6 @@ def main():
         help="Don't automatically open the browser",
     )
     args = parser.parse_args()
-
-    _ensure_demo_data()
 
     app = create_app()
 
