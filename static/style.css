@@ -221,13 +221,15 @@ a:hover { color: var(--snowball-blue-dark); }
     border: 1px solid var(--gray-200);
     border-radius: 8px;
     padding: 20px 22px;
-    text-align: left;
+    text-align: center;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 16px;
     box-shadow: var(--shadow-sm);
 }
 .pipeline-gate {
-    border-left: 3px solid var(--snowball-blue);
+    border-top: 3px solid var(--snowball-blue);
     background: var(--snowball-blue-pale);
 }
 .pipeline-num {
@@ -253,7 +255,7 @@ a:hover { color: var(--snowball-blue-dark); }
     font-size: 14px;
     font-weight: 700;
     color: var(--gray-900);
-    margin-bottom: 6px;
+    margin-bottom: 0;
 }
 .pipeline-body p {
     font-size: 13px;
