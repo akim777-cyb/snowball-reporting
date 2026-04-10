@@ -20,6 +20,14 @@
             <button type="submit" class="btn btn-primary">Extract Asset Data</button>
         </form>
 
+        <div class="upload-divider"><span>OR</span></div>
+
+        <form method="post" action="{{ url_for('load_demo_assets') }}" class="upload-box upload-box-demo">
+            <div class="upload-icon">&#9733;</div>
+            <h3>Use Demo Source Documents</h3>
+            <p>Sample rent rolls and ARGUS exports to explore the full pipeline.</p>
+            <button type="submit" class="btn btn-secondary">Load Demo &amp; Extract</button>
+        </form>
     </div>
 </section>
 {% else %}
