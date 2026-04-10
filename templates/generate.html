@@ -11,20 +11,6 @@
 
 <section class="generate-card">
     {% if state.pdf_gen_status == "idle" %}
-        <div class="generate-summary">
-            <div class="summary-item">
-                <div class="summary-num">{{ state.investors | length }}</div>
-                <div class="summary-label">PDFs to generate</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-num">3</div>
-                <div class="summary-label">Fund vehicles</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-num">{{ state.extracted_assets | length }}</div>
-                <div class="summary-label">Assets covered</div>
-            </div>
-        </div>
         <form method="post" action="{{ url_for('generate') }}">
             <button type="submit" class="btn btn-primary btn-xl">Start PDF Generation</button>
         </form>
