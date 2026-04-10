@@ -9,10 +9,12 @@
 <body>
     <header class="site-header">
         <div class="header-inner">
-            <div class="brand">
-                <div class="brand-mark">SNOWBALL</div>
-                <div class="brand-tag">DEVELOPMENTS</div>
-            </div>
+            <form method="post" action="{{ url_for('reset') }}" class="brand brand-link" style="display:inline;">
+                <button type="submit" class="brand-btn">
+                    <div class="brand-mark">SNOWBALL</div>
+                    <div class="brand-tag">DEVELOPMENTS</div>
+                </button>
+            </form>
             <div class="header-meta">
                 <div class="header-label">Investor Reporting Pipeline</div>
             </div>
