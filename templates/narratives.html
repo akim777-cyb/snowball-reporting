@@ -5,7 +5,6 @@
     <div>
         <div class="eyebrow">Step 4 of 7 &middot; Approval Gate 1</div>
         <h1>Review Fund Narratives</h1>
-        <p class="subtitle">One AI-drafted narrative per fund, grounded only in the performance data and highlights you provided. Edit, regenerate, or approve.</p>
     </div>
     <div class="status-badge {% if all_approved %}status-ready{% else %}status-pending{% endif %}">
         {% set approved_count = funds | selectattr('approved') | list | length %}
