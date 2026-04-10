@@ -28,11 +28,28 @@ FUND_TABS = {
 def load_investors(path: Path) -> List[Investor]:
     """
     Load investor roster from Excel.
+    Auto-detects the header row so Juniper Square-style exports with
+    title/metadata rows at the top load correctly alongside simple rosters.
+
     Production: replace with `jsq_client.list_investors()`.
     """
-    df = pd.read_excel(path)
+    # Scan the first 15 rows for the header row (one containing "Investor ID")
+    raw = pd.read_excel(path, header=None, nrows=15)
+    header_row = 0
+    for idx, row in raw.iterrows():
+        if any("Investor ID" == str(cell).strip() for cell in row if pd.notna(cell)):
+            header_row = idx
+            break
+
+    df = pd.read_excel(path, header=header_row)
+    # Drop any fully-empty rows
+    df = df.dropna(how="all")
+
     investors = []
     for _, row in df.iterrows():
+        # Skip rows where Investor ID is missing (footer rows, etc.)
+        if pd.isna(row.get("Investor ID")):
+            continue
         investors.append(
             Investor(
                 investor_id=str(row["Investor ID"]),
