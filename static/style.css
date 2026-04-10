@@ -400,25 +400,43 @@ a:hover { color: var(--snowball-blue-dark); }
     color: var(--gray-900);
 }
 .data-table tbody tr:hover { background: var(--gray-50); }
-.data-table.editable td { padding: 6px; }
-.data-table.editable input {
+/* Editable table cells — shared by assets & investors */
+.data-table.editable td { padding: 4px 6px; vertical-align: middle; }
+.cell-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 7px 10px;
     font-size: 13px;
-    border: 1px solid transparent;
-    border-radius: 3px;
     font-family: inherit;
     color: var(--gray-900);
     background: transparent;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
-.data-table.editable input:focus {
+.cell-input:hover { border-color: var(--gray-300); }
+.cell-input:focus {
     outline: none;
     background: white;
     border-color: var(--snowball-blue);
     box-shadow: 0 0 0 2px var(--snowball-blue-pale);
 }
-.data-table.editable input.narrow { max-width: 80px; text-align: right; }
-.data-table.editable input.num-input { font-variant-numeric: tabular-nums; }
+.cell-input.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.cell-input.cell-narrow { max-width: 70px; }
+.cell-select {
+    appearance: auto;
+    cursor: pointer;
+}
+/* Hide number input spinners for cleaner look */
+.cell-input[type="number"]::-webkit-inner-spin-button,
+.cell-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.cell-input[type="number"] { -moz-appearance: textfield; }
 
 /* ---------- Alerts / chips ---------- */
 .alert {

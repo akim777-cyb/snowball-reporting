@@ -56,13 +56,13 @@
                 <tbody>
                     {% for a in assets %}
                     <tr>
-                        <td><input name="asset_name_{{ loop.index0 }}" value="{{ a.asset_name }}"></td>
-                        <td><input name="state_{{ loop.index0 }}" value="{{ a.state }}" class="narrow"></td>
-                        <td class="num"><input name="sf_{{ loop.index0 }}" value="{{ a.sf }}" class="narrow num-input"></td>
-                        <td class="num"><input name="occupancy_pct_{{ loop.index0 }}" value="{{ a.occupancy_pct }}" class="narrow num-input"></td>
-                        <td class="num"><input name="in_place_noi_{{ loop.index0 }}" value="{{ a.in_place_noi }}" class="num-input"></td>
-                        <td class="num"><input name="yoy_noi_change_pct_{{ loop.index0 }}" value="{{ a.yoy_noi_change_pct }}" class="narrow num-input"></td>
-                        <td class="num"><input name="valuation_mark_{{ loop.index0 }}" value="{{ a.valuation_mark }}" class="num-input"></td>
+                        <td><input type="text" name="asset_name_{{ loop.index0 }}" value="{{ a.asset_name }}" class="cell-input"></td>
+                        <td><input type="text" name="state_{{ loop.index0 }}" value="{{ a.state }}" class="cell-input cell-narrow"></td>
+                        <td class="num"><input type="number" name="sf_{{ loop.index0 }}" value="{{ a.sf }}" class="cell-input num"></td>
+                        <td class="num"><input type="number" name="occupancy_pct_{{ loop.index0 }}" value="{{ a.occupancy_pct }}" step="0.1" class="cell-input num"></td>
+                        <td class="num"><input type="number" name="in_place_noi_{{ loop.index0 }}" value="{{ a.in_place_noi }}" step="0.01" class="cell-input num"></td>
+                        <td class="num"><input type="number" name="yoy_noi_change_pct_{{ loop.index0 }}" value="{{ a.yoy_noi_change_pct }}" step="0.1" class="cell-input num"></td>
+                        <td class="num"><input type="number" name="valuation_mark_{{ loop.index0 }}" value="{{ a.valuation_mark }}" step="0.01" class="cell-input num"></td>
                     </tr>
                     {% endfor %}
                 </tbody>
