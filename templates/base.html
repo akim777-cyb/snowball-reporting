@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Snowball Developments — Investor Reporting{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="brand">
+                <div class="brand-mark">SNOWBALL</div>
+                <div class="brand-tag">DEVELOPMENTS</div>
+            </div>
+            <div class="header-meta">
+                <div class="header-label">Investor Reporting Pipeline</div>
+                <div class="header-period">{{ state.reporting_period }}</div>
+            </div>
+        </div>
+        {% if current_step > 0 and request.path != '/' %}
+        <nav class="stepper">
+            <ol>
+                <li class="{% if current_step == 1 %}step-current{% elif current_step > 1 %}step-done{% endif %}">
+                    <span class="step-num">1</span><span class="step-label">Assets</span>
+                </li>
+                <li class="{% if current_step == 2 %}step-current{% elif current_step > 2 %}step-done{% endif %}">
+                    <span class="step-num">2</span><span class="step-label">Investors</span>
+                </li>
+                <li class="{% if current_step == 3 %}step-current{% elif current_step > 3 %}step-done{% endif %}">
+                    <span class="step-num">3</span><span class="step-label">Highlights</span>
+                </li>
+                <li class="{% if current_step == 4 %}step-current{% elif current_step > 4 %}step-done{% endif %}">
+                    <span class="step-num">4</span><span class="step-label">Narratives</span>
+                </li>
+                <li class="{% if current_step == 5 %}step-current{% elif current_step > 5 %}step-done{% endif %}">
+                    <span class="step-num">5</span><span class="step-label">Generate</span>
+                </li>
+                <li class="{% if current_step == 6 %}step-current{% elif current_step > 6 %}step-done{% endif %}">
+                    <span class="step-num">6</span><span class="step-label">Review PDFs</span>
+                </li>
+                <li class="{% if current_step == 7 %}step-current{% endif %}">
+                    <span class="step-num">7</span><span class="step-label">Release</span>
+                </li>
+            </ol>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p>Snowball Developments &middot; Quarterly Reporting Automation &middot; Demo build</p>
+        <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
+            <button type="submit" class="btn-link">Reset Pipeline</button>
+        </form>
+    </footer>
+</body>
+</html>

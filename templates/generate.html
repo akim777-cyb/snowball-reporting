@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 5 of 7</div>
+        <h1>Generate Investor PDFs</h1>
+        <p class="subtitle">Personalized capital account statements for every investor across all three funds. Canadian feeder investors receive FX conversion and withholding disclosures automatically.</p>
+    </div>
+</div>
+
+<section class="generate-card">
+    {% if state.pdf_gen_status == "idle" %}
+        <div class="generate-summary">
+            <div class="summary-item">
+                <div class="summary-num">{{ state.investors | length }}</div>
+                <div class="summary-label">PDFs to generate</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-num">3</div>
+                <div class="summary-label">Fund vehicles</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-num">{{ state.extracted_assets | length }}</div>
+                <div class="summary-label">Assets covered</div>
+            </div>
+        </div>
+        <form method="post" action="{{ url_for('generate') }}">
+            <button type="submit" class="btn btn-primary btn-xl">Start PDF Generation</button>
+        </form>
+
+    {% elif state.pdf_gen_status == "running" %}
+        <div class="spinner"></div>
+        <h3 id="gen-status">Generating PDFs...</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text" id="progress-text">0 of {{ state.pdf_gen_total }}</div>
+        <script>
+            function poll() {
+                fetch("{{ url_for('generate_status') }}")
+                    .then(r => r.json())
+                    .then(data => {
+                        const pct = data.total > 0 ? (data.progress / data.total * 100) : 0;
+                        document.getElementById("progress-fill").style.width = pct + "%";
+                        document.getElementById("progress-text").textContent =
+                            data.progress + " of " + data.total;
+                        if (data.status === "done") {
+                            window.location.href = "{{ url_for('review_pdfs') }}";
+                        } else if (data.status === "error") {
+                            document.getElementById("gen-status").textContent = "Error — check the console.";
+                        } else {
+                            setTimeout(poll, 500);
+                        }
+                    });
+            }
+            poll();
+        </script>
+
+    {% elif state.pdf_gen_status == "done" %}
+        <div class="check-big">&#10003;</div>
+        <h3>Generation Complete</h3>
+        <p>{{ state.pdf_gen_total }} draft PDFs ready for review.</p>
+        <a href="{{ url_for('review_pdfs') }}" class="btn btn-primary btn-xl">Review Drafts &rarr;</a>
+
+    {% elif state.pdf_gen_status == "error" %}
+        <div class="alert alert-error">PDF generation failed. Check the terminal for details.</div>
+        <form method="post" action="{{ url_for('generate') }}">
+            <button type="submit" class="btn btn-secondary">Retry</button>
+        </form>
+    {% endif %}
+</section>
+
+<div class="nav-row">
+    <a href="{{ url_for('narratives') }}" class="btn btn-ghost">&larr; Back</a>
+</div>
+{% endblock %}

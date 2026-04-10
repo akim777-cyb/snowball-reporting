@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 3 of 7</div>
+        <h1>Quarter Highlights</h1>
+        <p class="subtitle">Three to five bullet points per fund. These become the raw material the AI uses to draft the narratives in the next step. One bullet per line.</p>
+    </div>
+</div>
+
+<form method="post" action="{{ url_for('highlights') }}">
+    {% for code, label in [('GP1', 'GP Fund #1'), ('GP2', 'GP Fund #2'), ('CAD_FEEDER', 'Canadian Feeder Fund')] %}
+    <section class="highlights-card">
+        <div class="highlights-card-header">
+            <h3>{{ label }}</h3>
+            <span class="fund-chip fund-chip-{{ code }}">{{ code }}</span>
+        </div>
+        <textarea name="highlights_{{ code }}" rows="8" placeholder="Enter one highlight per line. Example:&#10;Signed a new 10-year lease at South Windsor at $8.75 PSF NNN.">{% for h in state.highlights[code] %}{{ h }}
+{% endfor %}</textarea>
+    </section>
+    {% endfor %}
+
+    <div class="nav-row">
+        <a href="{{ url_for('investors') }}" class="btn btn-ghost">&larr; Back</a>
+        <button type="submit" class="btn btn-primary">Generate Narratives &rarr;</button>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 4 of 7 &middot; Approval Gate 1</div>
+        <h1>Review Fund Narratives</h1>
+        <p class="subtitle">One AI-drafted narrative per fund, grounded only in the performance data and highlights you provided. Edit, regenerate, or approve.</p>
+    </div>
+    <div class="status-badge {% if all_approved %}status-ready{% else %}status-pending{% endif %}">
+        {% set approved_count = funds | selectattr('approved') | list | length %}
+        {{ approved_count }} / {{ funds | length }} approved
+    </div>
+</div>
+
+{% for fund in funds %}
+<section class="fund-card {% if fund.approved %}fund-approved{% endif %}">
+    <div class="fund-card-header">
+        <div>
+            <h2>{{ fund.name }}</h2>
+            <div class="fund-metrics">
+                <span><strong>NAV:</strong> ${{ "{:,.0f}".format(fund.performance.quarter_end_nav) }}</span>
+                <span><strong>ITD IRR:</strong> {{ "%.1f"|format(fund.performance.itd_net_irr) }}%</span>
+                <span><strong>ITD EM:</strong> {{ "%.2f"|format(fund.performance.itd_equity_multiple) }}x</span>
+                <span><strong>Assets:</strong> {{ fund.performance.assets | length }}</span>
+            </div>
+        </div>
+        <div class="fund-status">
+            {% if fund.approved %}
+                <span class="status-chip status-chip-approved">&#10003; Approved</span>
+            {% else %}
+                <span class="status-chip status-chip-pending">Pending Review</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="highlights-block">
+        <div class="highlights-label">Quarter Highlights</div>
+        <ul>
+            {% for h in fund.highlights %}
+            <li>{{ h }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <form method="post" action="{{ url_for('save_narrative_edit', code=fund.code) }}" class="narrative-form">
+        <label class="narrative-label">Fund Narrative</label>
+        <textarea name="narrative" rows="14" {% if fund.approved %}readonly{% endif %}>{{ fund.narrative }}</textarea>
+
+        <div class="action-row">
+            {% if fund.approved %}
+                <form method="post" action="{{ url_for('unapprove_narrative', code=fund.code) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-secondary">Unlock to Edit</button>
+                </form>
+            {% else %}
+                <button type="submit" class="btn btn-secondary">Save Edit</button>
+                <button type="submit" formaction="{{ url_for('regen_narrative', code=fund.code) }}" class="btn btn-ghost">&#8634; Regenerate</button>
+                <button type="submit" formaction="{{ url_for('approve_narrative', code=fund.code) }}" class="btn btn-primary">Approve</button>
+            {% endif %}
+        </div>
+    </form>
+</section>
+{% endfor %}
+
+<div class="nav-row">
+    <a href="{{ url_for('highlights') }}" class="btn btn-ghost">&larr; Back</a>
+    {% if all_approved %}
+        <a href="{{ url_for('generate') }}" class="btn btn-primary">Proceed to PDF Generation &rarr;</a>
+    {% else %}
+        <button class="btn btn-disabled" disabled>Approve all three narratives to continue</button>
+    {% endif %}
+</div>
+{% endblock %}

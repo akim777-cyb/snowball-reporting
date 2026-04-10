@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="release-card">
+    <div class="check-big">&#10003;</div>
+    <h1>{{ released }} PDFs Released</h1>
+    <p class="subtitle">{{ released }} approved statements have been released. {% if rejected %}{{ rejected }} were rejected and held back.{% endif %}</p>
+
+    <div class="prod-callout">
+        <div class="prod-callout-label">In Production</div>
+        <p>
+            At this point in the real pipeline, the approved PDFs would post automatically to the Juniper Square
+            investor portal and trigger notification emails to each investor. Andres would never open the
+            individual files manually — the entire distribution happens as a single atomic release event,
+            with full audit logging.
+        </p>
+    </div>
+
+    <div class="nav-row center">
+        <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
+            <button type="submit" class="btn btn-primary">Start a New Quarter</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

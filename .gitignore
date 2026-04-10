@@ -1,0 +1,32 @@
+# Python
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Environment secrets — never commit API keys
+.env
+.env.local
+
+# Runtime artifacts — regenerated on each run
+uploads/*
+!uploads/.gitkeep
+draft_pdfs/*
+!draft_pdfs/.gitkeep
+approved_pdfs/*
+!approved_pdfs/.gitkeep
+approved_narratives/*
+!approved_narratives/.gitkeep
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp

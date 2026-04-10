@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="landing-hero">
+    <div class="landing-title-block">
+        <div class="eyebrow">Quarterly Investor Reporting</div>
+        <h1>Generate {{ state.reporting_period }} Reports</h1>
+        <p class="lead">
+            Automated pipeline for Snowball's three fund vehicles: GP Fund #1,
+            GP Fund #2, and the Canadian Feeder Fund. Asset data is extracted
+            from property manager documents. Narratives are drafted by AI.
+            Every report passes two human approval gates before release.
+        </p>
+    </div>
+
+    <div class="pipeline-overview">
+        <div class="pipeline-row">
+            <div class="pipeline-card">
+                <div class="pipeline-num">1</div>
+                <div class="pipeline-body">
+                    <h4>Extract asset data</h4>
+                    <p>Upload operating statements, rent rolls, or ARGUS exports. The system reads them and pulls out asset performance automatically.</p>
+                </div>
+            </div>
+            <div class="pipeline-card">
+                <div class="pipeline-num">2</div>
+                <div class="pipeline-body">
+                    <h4>Load investor roster</h4>
+                    <p>Upload the investor roster (or plug into Juniper Square in production). Reconciliation checks run automatically.</p>
+                </div>
+            </div>
+            <div class="pipeline-card">
+                <div class="pipeline-num">3</div>
+                <div class="pipeline-body">
+                    <h4>Enter quarter highlights</h4>
+                    <p>Three to five bullet points per fund. This is the only free-text input in the whole pipeline.</p>
+                </div>
+            </div>
+        </div>
+        <div class="pipeline-row">
+            <div class="pipeline-card pipeline-gate">
+                <div class="pipeline-num">4<span class="gate-star">★</span></div>
+                <div class="pipeline-body">
+                    <h4>Gate 1 — Approve narratives</h4>
+                    <p>AI drafts one narrative per fund. You review, edit, or regenerate before anything downstream runs.</p>
+                </div>
+            </div>
+            <div class="pipeline-card">
+                <div class="pipeline-num">5</div>
+                <div class="pipeline-body">
+                    <h4>Generate PDFs</h4>
+                    <p>Personalized capital account statements render for every investor in every fund.</p>
+                </div>
+            </div>
+            <div class="pipeline-card pipeline-gate">
+                <div class="pipeline-num">6<span class="gate-star">★</span></div>
+                <div class="pipeline-body">
+                    <h4>Gate 2 — Review &amp; release</h4>
+                    <p>Spot-check every draft PDF in the browser. Approve individually or in bulk, then release.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cta-row">
+        <a href="{{ url_for('assets') }}" class="btn btn-primary btn-xl">Start Pipeline &rarr;</a>
+        <p class="cta-note">You can use the built-in demo data at each step, or upload your own files.</p>
+    </div>
+</section>
+
+<section class="prod-note">
+    <div class="prod-note-inner">
+        <div class="prod-note-label">Production Path</div>
+        <p>
+            In production at Snowball, the asset extraction layer reads directly from property manager document feeds,
+            the investor roster connects to the Juniper Square API, and released PDFs post automatically to the investor portal.
+            The in-browser upload steps below mirror the structure of those production integrations.
+        </p>
+    </div>
+</section>
+{% endblock %}

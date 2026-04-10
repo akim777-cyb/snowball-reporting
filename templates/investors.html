@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 2 of 7</div>
+        <h1>Load Investor Roster</h1>
+        <p class="subtitle">Upload the investor roster or connect to Juniper Square. Reconciliation checks run automatically.</p>
+    </div>
+</div>
+
+{% if not investors %}
+<section class="upload-section">
+    <div class="upload-grid">
+        <form method="post" enctype="multipart/form-data" class="upload-box">
+            <div class="upload-icon">&#8682;</div>
+            <h3>Upload Roster</h3>
+            <p>Excel file with investor commitments, contributions, distributions, and ownership %.</p>
+            <input type="file" name="roster" accept=".xlsx,.xls,.csv">
+            <button type="submit" class="btn btn-primary">Upload Roster</button>
+        </form>
+
+        <div class="upload-divider"><span>OR</span></div>
+
+        <form method="post" action="{{ url_for('load_demo_investors') }}" class="upload-box upload-box-demo">
+            <div class="upload-icon">&#9733;</div>
+            <h3>Use Demo Roster</h3>
+            <p>20 mock investors across GP1, GP2, and the Canadian Feeder — structural proxy for the real 155-account dataset.</p>
+            <button type="submit" class="btn btn-secondary">Load Demo Roster</button>
+        </form>
+    </div>
+</section>
+{% else %}
+<section>
+    {% if warnings %}
+        <div class="alert alert-warning">
+            <strong>Reconciliation warnings:</strong>
+            <ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+        </div>
+    {% else %}
+        <div class="alert alert-success">
+            &#10003; Reconciliation check passed — ownership sums to 100% in every fund.
+        </div>
+    {% endif %}
+
+    <div class="fund-breakdown">
+        {% set gp1_investors = investors | selectattr('fund_vehicle', 'equalto', 'GP1') | list %}
+        {% set gp2_investors = investors | selectattr('fund_vehicle', 'equalto', 'GP2') | list %}
+        {% set cad_investors = investors | selectattr('fund_vehicle', 'equalto', 'CAD_FEEDER') | list %}
+        <div class="fund-tile">
+            <div class="fund-tile-label">GP Fund #1</div>
+            <div class="fund-tile-num">{{ gp1_investors|length }}</div>
+            <div class="fund-tile-sub">investors</div>
+        </div>
+        <div class="fund-tile">
+            <div class="fund-tile-label">GP Fund #2</div>
+            <div class="fund-tile-num">{{ gp2_investors|length }}</div>
+            <div class="fund-tile-sub">investors</div>
+        </div>
+        <div class="fund-tile">
+            <div class="fund-tile-label">Canadian Feeder</div>
+            <div class="fund-tile-num">{{ cad_investors|length }}</div>
+            <div class="fund-tile-sub">investors</div>
+        </div>
+        <div class="fund-tile fund-tile-total">
+            <div class="fund-tile-label">Total</div>
+            <div class="fund-tile-num">{{ investors|length }}</div>
+            <div class="fund-tile-sub">investors</div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Investor ID</th>
+                    <th>Name</th>
+                    <th>Fund</th>
+                    <th>Type</th>
+                    <th>Country</th>
+                    <th class="num">Commitment</th>
+                    <th class="num">Contributed</th>
+                    <th class="num">Own %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in investors %}
+                <tr>
+                    <td>{{ i.investor_id }}</td>
+                    <td>{{ i.investor_name }}</td>
+                    <td><span class="fund-chip fund-chip-{{ i.fund_vehicle }}">{{ i.fund_vehicle }}</span></td>
+                    <td>{{ i.investor_type }}</td>
+                    <td>{{ i.country }}</td>
+                    <td class="num">${{ "{:,.0f}".format(i.commitment) }}</td>
+                    <td class="num">${{ "{:,.0f}".format(i.total_contributed) }}</td>
+                    <td class="num">{{ "%.2f"|format(i.ownership_pct) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="nav-row">
+        <a href="{{ url_for('assets') }}" class="btn btn-ghost">&larr; Back</a>
+        <a href="{{ url_for('highlights') }}" class="btn btn-primary">Continue to Highlights &rarr;</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

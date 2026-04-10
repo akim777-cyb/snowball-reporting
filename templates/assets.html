@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Step 1 of 7</div>
+        <h1>Extract Asset-Level Performance</h1>
+        <p class="subtitle">Upload operating statements, rent rolls, or ARGUS exports. The system reads them and extracts structured asset data automatically.</p>
+    </div>
+</div>
+
+{% if not assets %}
+<section class="upload-section">
+    <div class="upload-grid">
+        <form method="post" enctype="multipart/form-data" class="upload-box">
+            <div class="upload-icon">&#8682;</div>
+            <h3>Upload Your Source Documents</h3>
+            <p>PDF, Excel, or CSV. You can select multiple files at once.</p>
+            <input type="file" name="files" multiple accept=".pdf,.xlsx,.xls,.csv">
+            <button type="submit" class="btn btn-primary">Extract Asset Data</button>
+        </form>
+
+        <div class="upload-divider"><span>OR</span></div>
+
+        <form method="post" action="{{ url_for('load_demo_assets') }}" class="upload-box upload-box-demo">
+            <div class="upload-icon">&#9733;</div>
+            <h3>Use Demo Source Documents</h3>
+            <p>Three bundled sample files — an operating statement PDF, a rent roll Excel, and an ARGUS CSV export.</p>
+            <button type="submit" class="btn btn-secondary">Load Demo &amp; Extract</button>
+        </form>
+    </div>
+</section>
+{% else %}
+<section class="extracted-section">
+    <div class="extracted-header">
+        <div>
+            <div class="extracted-label">Extracted {{ assets|length }} assets from {{ state.source_doc_names|length }} source document{% if state.source_doc_names|length != 1 %}s{% endif %}</div>
+            <div class="source-list">
+                {% for name in state.source_doc_names %}
+                    <span class="source-chip">{{ name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <form method="post" action="{{ url_for('assets') }}" style="display:inline;">
+            <button type="submit" class="btn btn-ghost btn-sm">Re-upload</button>
+        </form>
+    </div>
+
+    <form method="post" action="{{ url_for('update_assets') }}">
+        <input type="hidden" name="row_count" value="{{ assets|length }}">
+        <div class="table-wrap">
+            <table class="data-table editable">
+                <thead>
+                    <tr>
+                        <th>Asset Name</th>
+                        <th>State</th>
+                        <th class="num">SF</th>
+                        <th class="num">Occupancy %</th>
+                        <th class="num">In-Place NOI</th>
+                        <th class="num">YoY Δ %</th>
+                        <th class="num">Valuation Mark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assets %}
+                    <tr>
+                        <td><input name="asset_name_{{ loop.index0 }}" value="{{ a.asset_name }}"></td>
+                        <td><input name="state_{{ loop.index0 }}" value="{{ a.state }}" class="narrow"></td>
+                        <td class="num"><input name="sf_{{ loop.index0 }}" value="{{ a.sf }}" class="narrow num-input"></td>
+                        <td class="num"><input name="occupancy_pct_{{ loop.index0 }}" value="{{ a.occupancy_pct }}" class="narrow num-input"></td>
+                        <td class="num"><input name="in_place_noi_{{ loop.index0 }}" value="{{ a.in_place_noi }}" class="num-input"></td>
+                        <td class="num"><input name="yoy_noi_change_pct_{{ loop.index0 }}" value="{{ a.yoy_noi_change_pct }}" class="narrow num-input"></td>
+                        <td class="num"><input name="valuation_mark_{{ loop.index0 }}" value="{{ a.valuation_mark }}" class="num-input"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="nav-row">
+            <a href="{{ url_for('index') }}" class="btn btn-ghost">&larr; Back</a>
+            <button type="submit" class="btn btn-primary">Confirm Assets &amp; Continue &rarr;</button>
+        </div>
+    </form>
+</section>
+{% endif %}
+{% endblock %}
