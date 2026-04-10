@@ -24,25 +24,28 @@ from .schemas import AssetPerformance
 # reachable (no key, offline demo, etc.). Every mock source document has
 # a matching fallback so the demo is deterministic.
 FALLBACK_EXTRACTIONS: dict[str, List[dict]] = {
-    # Apex Industrial Management CT operating statement → 5 CT assets
-    "q1_operating_statement": [
+    # Apex Industrial Management CT rent roll → 4 CT assets
+    "apex_ct": [
         {"asset_name": "Eastern Park",  "state": "CT", "sf": 180_000, "occupancy_pct": 95.0, "in_place_noi": 1_620_000, "yoy_noi_change_pct": 8.5,  "valuation_mark": 21_000_000},
         {"asset_name": "South Windsor", "state": "CT", "sf": 145_000, "occupancy_pct": 97.0, "in_place_noi": 1_180_000, "yoy_noi_change_pct": 11.3, "valuation_mark": 16_200_000},
         {"asset_name": "Danbury",       "state": "CT", "sf": 125_000, "occupancy_pct": 92.0, "in_place_noi":   870_000, "yoy_noi_change_pct": 5.8,  "valuation_mark": 11_800_000},
         {"asset_name": "Bridgeport",    "state": "CT", "sf": 210_000, "occupancy_pct": 88.0, "in_place_noi": 1_380_000, "yoy_noi_change_pct": 4.2,  "valuation_mark": 17_500_000},
-        {"asset_name": "Stratford",     "state": "CT", "sf": 155_000, "occupancy_pct": 94.0, "in_place_noi": 1_050_000, "yoy_noi_change_pct": 7.1,  "valuation_mark": 13_200_000},
     ],
     # Garden State Properties NJ rent roll → 4 NJ assets
-    "q1_rent_roll": [
+    "garden_state_nj": [
         {"asset_name": "Mountainside", "state": "NJ", "sf":  95_000, "occupancy_pct":  98.0, "in_place_noi": 935_000, "yoy_noi_change_pct": 6.2, "valuation_mark": 14_500_000},
         {"asset_name": "Little Ferry", "state": "NJ", "sf":  68_000, "occupancy_pct": 100.0, "in_place_noi": 720_000, "yoy_noi_change_pct": 9.4, "valuation_mark": 10_500_000},
         {"asset_name": "Elizabeth",    "state": "NJ", "sf":  85_000, "occupancy_pct": 100.0, "in_place_noi": 925_000, "yoy_noi_change_pct": 8.1, "valuation_mark": 12_800_000},
         {"asset_name": "Kearny",       "state": "NJ", "sf":  72_000, "occupancy_pct":  96.0, "in_place_noi": 780_000, "yoy_noi_change_pct": 7.5, "valuation_mark": 10_900_000},
     ],
-    # ARGUS export CT remainder → 5 CT assets
-    "q1_argus_export": [
+    # ARGUS Core Holdings → 3 CT stabilized assets
+    "argus_core": [
+        {"asset_name": "Stratford",     "state": "CT", "sf": 155_000, "occupancy_pct":  94.0, "in_place_noi": 1_050_000, "yoy_noi_change_pct": 7.1,  "valuation_mark": 13_200_000},
         {"asset_name": "Waterbury",     "state": "CT", "sf": 135_000, "occupancy_pct": 100.0, "in_place_noi":   985_000, "yoy_noi_change_pct": 12.6, "valuation_mark": 12_100_000},
         {"asset_name": "Windsor Locks", "state": "CT", "sf": 175_000, "occupancy_pct":  90.0, "in_place_noi": 1_220_000, "yoy_noi_change_pct": 6.8,  "valuation_mark": 14_700_000},
+    ],
+    # ARGUS Value-Add Pipeline → 3 CT value-add assets
+    "argus_valueadd": [
         {"asset_name": "East Hartford", "state": "CT", "sf": 115_000, "occupancy_pct":  95.0, "in_place_noi":   810_000, "yoy_noi_change_pct": 9.2,  "valuation_mark": 10_300_000},
         {"asset_name": "Meriden",       "state": "CT", "sf": 160_000, "occupancy_pct":  82.0, "in_place_noi": 1_020_000, "yoy_noi_change_pct": 3.4,  "valuation_mark": 13_500_000},
         {"asset_name": "New Britain",   "state": "CT", "sf":  80_000, "occupancy_pct": 100.0, "in_place_noi":   615_000, "yoy_noi_change_pct": 10.8, "valuation_mark":  8_400_000},
@@ -135,22 +138,27 @@ def extract_assets_from_document(path: Path) -> List[AssetPerformance]:
         print(f"[document_intelligence] API extraction failed, using fallback: {e}")
 
     # Fallback — match by keywords in the filename so any reasonable
-    # filename pattern (old or new demo files) finds the right fixture.
+    # filename pattern finds the right fixture.
     stem = path.stem.lower().replace("-", "_").replace(" ", "_")
 
     # Keyword groups → fixture key. First match wins.
+    # Order matters: more specific patterns first (e.g. argus+core before argus alone).
     keyword_map = [
-        # Operating statement / PM report → operating_statement fixture
-        (("operating",),       "q1_operating_statement"),
-        (("pm_report",),       "q1_operating_statement"),
-        (("apex",),            "q1_operating_statement"),
-        # Rent roll → rent_roll fixture
-        (("rent", "roll"),     "q1_rent_roll"),
-        (("rentroll",),        "q1_rent_roll"),
-        (("garden", "state"),  "q1_rent_roll"),
-        # ARGUS / valuation export → argus fixture
-        (("argus",),           "q1_argus_export"),
-        (("valuation",),       "q1_argus_export"),
+        # Apex CT rent roll
+        (("apex",),                       "apex_ct"),
+        # Garden State NJ rent roll
+        (("garden", "state"),             "garden_state_nj"),
+        (("gardenstate",),                "garden_state_nj"),
+        (("nj", "rent"),                  "garden_state_nj"),
+        # ARGUS Value-Add (more specific, check first)
+        (("argus", "valueadd"),           "argus_valueadd"),
+        (("argus", "value_add"),          "argus_valueadd"),
+        (("valueadd",),                   "argus_valueadd"),
+        # ARGUS Core
+        (("argus", "core"),               "argus_core"),
+        (("core", "holdings"),            "argus_core"),
+        # Generic ARGUS → default to core
+        (("argus",),                      "argus_core"),
     ]
 
     for keywords, fixture_key in keyword_map:
@@ -158,7 +166,7 @@ def extract_assets_from_document(path: Path) -> List[AssetPerformance]:
             rows = FALLBACK_EXTRACTIONS.get(fixture_key, [])
             return [AssetPerformance(**row) for row in rows]
 
-    # Legacy substring matching for any old filenames
+    # Legacy substring matching for old filenames
     for key, rows in FALLBACK_EXTRACTIONS.items():
         if key in stem or stem in key:
             return [AssetPerformance(**row) for row in rows]
