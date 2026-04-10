@@ -126,7 +126,9 @@ def _quarter_inputs() -> QuarterInputs:
         reporting_period=STATE["reporting_period"],
         fx_rate_usd_cad=STATE["fx_rate_usd_cad"],
         cad_withholding_rate=STATE["cad_withholding_rate"],
-        highlights=dict(STATE["highlights"]),
+        highlights_gp1=STATE["highlights"].get("GP1", []),
+        highlights_gp2=STATE["highlights"].get("GP2", []),
+        highlights_cad=STATE["highlights"].get("CAD_FEEDER", []),
     )
 
 
